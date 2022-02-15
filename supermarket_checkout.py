@@ -82,13 +82,11 @@ async def add_product_to_basket(new_purchase: NewPurchase):
     else:
         basket.get("products")[product_id]["quantity"] += quantity
 
-    offers_to_apply = quantity // discount_quantity
+    discounts_to_apply = quantity // discount_quantity
 
-    if offers_to_apply >= 1:
-        basket["current_total"] += discount.get("new_price") * offers_to_apply
-        quantity -= offers_to_apply * discount_quantity
+    if discounts_to_apply >= 1:
+        basket["current_total"] += discount.get("new_price") * discounts_to_apply
+        quantity -= discounts_to_apply * discount_quantity
     if quantity > 0:
-        print("saaaaa")
-        print(product.get("price") * quantity)
         basket["current_total"] += product.get("price") * quantity
     return basket
