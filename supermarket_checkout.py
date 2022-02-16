@@ -1,5 +1,6 @@
-# uvicorn supermarket_checkout:app --reload
-from fastapi import FastAPI, Body
+import os
+from fastapi import FastAPI, Body, status
+from fastapi.responses import RedirectResponse
 from typing import Optional
 from pydantic import BaseModel
 
@@ -17,6 +18,7 @@ products = {
     2: {"name": "Chocolate", "price": 15.0},
     3: {"name": "Vodka", "price": 40.0},
 }
+
 baskets = {
     1: {
         "current_total": 0.0,
@@ -33,10 +35,10 @@ discounts = {
 
 @app.get("/")
 def home():
-    return {"Data": "test"}
+    return RedirectResponse("/get-all-baskets", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@app.post("/create-basket")
+@app.post("/create-basket", status_code=status.HTTP_201_CREATED)
 def create_basket():
     last_id = list(baskets.keys())[-1]
     new_basket_id = last_id + 1
@@ -48,22 +50,27 @@ def create_basket():
     return {"new_basket_id": new_basket_id}
 
 
-@app.get("/get-basket")
+@app.get("/get-basket", status_code=status.HTTP_200_OK)
 def get_basket(basket_id: int):
     return baskets.get(basket_id)
 
 
-@app.get("/total-value-shopping-basket")
+@app.get("/get-all-baskets", status_code=status.HTTP_200_OK)
+def get_basket():
+    return baskets
+
+
+@app.get("/total-value-shopping-basket", status_code=status.HTTP_200_OK)
 def get_total_value_shopping_basket(basket_id: int):
     return {"current_total": baskets.get(basket_id).get("current_total")}
 
 
-@app.get("/basket-list-of-products")
+@app.get("/basket-list-of-products", status_code=status.HTTP_200_OK)
 def get_basket_list_of_products(basket_id: int):
     return {"products": baskets.get(basket_id).get("products")}
 
 
-@app.post("/add-product-to-basket/")
+@app.post("/add-product-to-basket/", status_code=status.HTTP_200_OK)
 async def add_product_to_basket(new_purchase: NewPurchase):
     new_purchase_dict = new_purchase.dict()
     product_id = new_purchase_dict.get("product_id")
@@ -84,9 +91,13 @@ async def add_product_to_basket(new_purchase: NewPurchase):
 
     discounts_to_apply = quantity // discount_quantity
 
-    if discounts_to_apply >= 1:
+    if discounts_to_apply > 0:
         basket["current_total"] += discount.get("new_price") * discounts_to_apply
         quantity -= discounts_to_apply * discount_quantity
     if quantity > 0:
         basket["current_total"] += product.get("price") * quantity
     return basket
+
+
+if __name__ == "__main__":
+    os.system("uvicorn supermarket_checkout:app --reload")
